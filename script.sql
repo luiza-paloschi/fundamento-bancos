@@ -105,11 +105,21 @@ CREATE TABLE gas_fluxo(
     CONSTRAINT fk_fluxo_gas FOREIGN KEY(cod_fluxo_gas) REFERENCES fluxo_gas_efeito_estufa(codigo),
     CONSTRAINT fk_gas FOREIGN KEY(cod_gas) REFERENCES gas_efeito_estufa(codigo)
 );
-
+/*Tabela auxiliar para conversões*/
+CREATE TABLE gwp_ar6(
+	codigo INTEGER,
+ 	gwp100 DOUBLE PRECISION NOT NULL,
+	CONSTRAINT pk_gwp PRIMARY KEY(codigo)
+)
 
 /*-------------------------------------------------------------------------------------------------
 INSERÇÃO
 -------------------------------------------------------------------------------------------------*/
+--Fatores de conversão gwp
+INSERT INTO gwp_ar6 (codigo, gwp100) VALUES
+(3, 1.0),      -- CO2
+(1, 27.2)     -- CH4
+
 
 --códigos do IBGE para as UFs
 INSERT INTO estado (codigo, nome)
@@ -224,4 +234,5 @@ VALUES
     (2, 2, 1),
     (3, 3, 4),
     (4, 4, 3),
+
     (5, 5, 2);
