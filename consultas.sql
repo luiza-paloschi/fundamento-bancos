@@ -28,29 +28,18 @@ Consulta 2
 SELECT 
     m.nome AS municipio,
     e.nome AS estado,
-
-	--Aplicação do fator GWP AR6
-    SUM(
-        h.total_fluxo *
-        CASE 
-            WHEN g.codigo = 3 THEN 1        -- CO₂
-            WHEN g.codigo = 1 THEN 27.2     -- CH₄ (AR6)
-            ELSE 0
-        END
-    ) AS total_co2e_ar6
-
+    SUM(h.total_fluxo * gwp.gwp100) AS total_co2e_ar6
 FROM municipio m
 JOIN estado e 
     ON e.codigo = m.codigo_estado
 JOIN fluxo_gas_efeito_estufa f
     ON f.codigo_municipio = m.geocodigo
-JOIN gas_fluxo gf
+JOIN gas_fluxo gf 
     ON gf.cod_fluxo_gas = f.codigo
-JOIN gas_efeito_estufa g
-    ON g.codigo = gf.cod_gas
 JOIN historico_emissao h
     ON h.codigo = gf.cod_historico_emissao
-
+JOIN gwp_ar6 gwp
+    ON gwp.codigo = gf.cod_gas
 GROUP BY m.nome, e.nome
 ORDER BY total_co2e_ar6 DESC
 LIMIT 10;
@@ -65,19 +54,21 @@ SELECT
     e.nome AS estado,
     h.ano,
     h.total_fluxo AS emissao_ch4,
-    (h.total_fluxo * 27.2) AS emissao_co2e_ar6 -- Conversão de CH4 em C02 usando o GWP AR6
+    (h.total_fluxo * gwp.gwp100) AS emissao_co2e_ar6
 FROM municipio m
 JOIN estado e 
     ON e.codigo = m.codigo_estado
 JOIN fluxo_gas_efeito_estufa f
     ON f.codigo_municipio = m.geocodigo
-JOIN gas_fluxo gf
+JOIN gas_fluxo gf 
     ON gf.cod_fluxo_gas = f.codigo
-JOIN gas_efeito_estufa g
-    ON g.codigo = gf.cod_gas
 JOIN historico_emissao h
     ON h.codigo = gf.cod_historico_emissao
-WHERE g.codigo = 1;   -- Apenas CH4
+JOIN gwp_ar6 gwp
+    ON gwp.codigo = gf.cod_gas
+WHERE gf.cod_gas = 1;   -- Apenas CH4
+
+
 
 
 
