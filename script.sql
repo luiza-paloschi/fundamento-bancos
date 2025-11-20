@@ -105,22 +105,10 @@ CREATE TABLE gas_fluxo(
     CONSTRAINT fk_fluxo_gas FOREIGN KEY(cod_fluxo_gas) REFERENCES fluxo_gas_efeito_estufa(codigo),
     CONSTRAINT fk_gas FOREIGN KEY(cod_gas) REFERENCES gas_efeito_estufa(codigo)
 );
-/*Tabela auxiliar para conversões*/
-CREATE TABLE gwp_ar6(
-	codigo INTEGER,
- 	gwp100 DOUBLE PRECISION NOT NULL,
-	CONSTRAINT pk_gwp PRIMARY KEY(codigo)
-)
 
 /*-------------------------------------------------------------------------------------------------
 INSERÇÃO
 -------------------------------------------------------------------------------------------------*/
---Fatores de conversão gwp
-INSERT INTO gwp_ar6 (codigo, gwp100) VALUES
-(3, 1.0),      -- CO2
-(1, 27.2)     -- CH4
-
-
 --códigos do IBGE para as UFs
 INSERT INTO estado (codigo, nome)
 VALUES 
@@ -222,11 +210,11 @@ VALUES
 
 INSERT INTO historico_emissao (codigo, ano, total_fluxo)
 VALUES
-    (1, 1976, 0.026016826667413645),
-    (2, 1979, 0.02508487076385844),
-    (3, 2007, 147038259064726),
+    (1, 1976, 91.70),
+    (2, 1979, 15.02),
+    (3, 2007, 27.56),
     (4, 1984, 0.0),
-    (5, 1988, 1281763726969870);
+    (5, 1988, 80.98);
 
 INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas)
 VALUES 
@@ -234,5 +222,127 @@ VALUES
     (2, 2, 1),
     (3, 3, 4),
     (4, 4, 3),
-
     (5, 5, 2);
+
+
+
+/*-------------------------------------------------------------------------------------------------
+Alterações para parte 2 do trabalho
+-------------------------------------------------------------------------------------------------*/
+
+/*Tabela auxiliar para conversões*/
+CREATE TABLE gwp_ar6(
+	codigo INTEGER,
+ 	gwp100 DOUBLE PRECISION NOT NULL,
+	CONSTRAINT pk_gwp PRIMARY KEY(codigo)
+);
+
+--Fatores de conversão gwp
+INSERT INTO gwp_ar6 (codigo, gwp100) VALUES
+(1, 27.2) ,    -- CH4
+(2, 273),    -- N2O
+(3, 1.0);      -- CO2
+
+INSERT INTO municipio (geocodigo, nome, codigo_estado) VALUES
+    (12903501, 'Alagoinhas', 29),
+    (12904509, 'Catu', 29),
+
+    (14321009, 'Santa Maria', 43),
+    (14332007, 'Bagé', 43),
+
+    (15150502, 'Sorriso', 51),
+    (15161002, 'Sinop', 51),
+
+    (13122003, 'Montes Claros', 31),
+    (13193006, 'Uberaba', 31),
+
+    (22077009, 'Picos', 22),
+    (22019001, 'Campo Maior', 22);
+
+INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
+    (12903501, 4),
+    (12904509, 4),
+
+    (14321009, 5),
+    (14332007, 5),
+
+    (15150502, 2),
+    (15161002, 2),
+    (15161002, 1),
+
+    (13122003, 3),
+    (13193006, 4),
+
+    (22077009, 3),
+    (22019001, 3);
+
+INSERT INTO fluxo_gas_efeito_estufa 
+(codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma)
+VALUES
+    (6, 'Emissão', 1, 12903501, 4),
+    (7, 'Emissão', 2, 12903501, 4),
+    (8, 'Emissão', 1, 12904509, 4),
+    (9, 'Emissão', 3, 12904509, 4),
+
+    (10, 'Emissão', 2, 14321009, 5),
+    (11, 'Emissão', 1, 14321009, 5),
+    (12, 'Remoção', 3, 14332007, 5),
+
+    (13, 'Emissão', 1, 15150502, 2),
+    (14, 'Emissão', 1, 15161002, 2),
+    (15, 'Emissão', 2, 15161002, 1),
+
+    (16, 'Emissão', 1, 13122003, 3),
+    (17, 'Remoção', 3, 13122003, 3),
+    (18, 'Emissão', 2, 13193006, 4),
+
+    (19, 'Emissão', 1, 22077009, 3),
+    (20, 'Emissão', 2, 22077009, 3),
+    (21, 'Emissão', 1, 22019001, 3),
+    (22, 'Remoção', 3, 22019001, 3);
+
+INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
+    (6, 1990, 12.5),
+    (7, 1991, 25.3),
+    (8, 2001, 18.7),
+    (9, 2005, -5.2),
+
+    (10, 2010, 55.9),
+    (11, 1998, 32.1),
+    (12, 2015, -40.3),
+
+    (13, 2020, 102.6),
+    (14, 2021, 110.4),
+    (15, 2018, 88.2),
+
+    (16, 2012, 24.7),
+    (17, 2013, -12.9),
+    (18, 2007, 75.6),
+
+    (19, 2011, 41.3),
+    (20, 2003, 63.8),
+    (21, 2008, 22.4),
+    (22, 2014, -18.6);
+
+INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
+    (6, 6, 1),
+    (7, 7, 3),
+    (8, 8, 1),
+    (9, 9, 3),
+
+    (10, 10, 3),
+    (11, 11, 1),
+    (12, 12, 3),
+
+    (13, 13, 1),
+    (14, 14, 1),
+    (15, 15, 3),
+
+    (16, 16, 1),
+    (17, 17, 3),
+    (18, 18, 3),
+
+    (19, 19, 1),
+    (20, 20, 3),
+    (21, 21, 1),
+    (22, 22, 3);

@@ -70,5 +70,52 @@ WHERE gf.cod_gas = 1;   -- Apenas CH4
 
 
 
+/*
+    Consulta 7
+*/
+-- Tabelas temporárias para organizar os dados e deixar consulta mais legível
+-- Emissões por gás, setor e estado
+WITH emissoes_por_gas AS (
+    SELECT 
+        e.nome as estado,
+        se.nome as setor,
+        ge.nome as gas,
+        ge.formula,
+        SUM(he.total_fluxo * COALESCE(gwp.gwp100, 0)) as co2e
+    FROM estado e
+    INNER JOIN municipio m ON e.codigo = m.codigo_estado
+    INNER JOIN municipio_bioma mb ON m.geocodigo = mb.cod_municipio
+    INNER JOIN fluxo_gas_efeito_estufa f ON mb.cod_municipio = f.codigo_municipio 
+                                      AND mb.cod_bioma = f.codigo_bioma
+    INNER JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
+    INNER JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
+    INNER JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo
+    INNER JOIN setor_emissor se ON f.codigo_setor_emissor = se.codigo
+    LEFT JOIN gwp_ar6 gwp ON ge.codigo = gwp.codigo
+    WHERE he.total_fluxo > 0
+      AND f.tipo = 'Emissão'
+    GROUP BY e.nome, se.nome, ge.nome, ge.formula
+),
 
+-- Calcula totais por setor em cada estado
+totais_por_setor AS (
+    SELECT 
+        estado,
+        setor,
+        SUM(co2e) as total_setor
+    FROM emissoes_por_gas
+    GROUP BY estado, setor
+    HAVING SUM(co2e) > 0
+)
 
+-- Resultado final a ser exibido
+SELECT 
+    eg.estado as "Estado",
+    eg.setor as "Setor",
+    eg.gas as "Gás",
+    eg.formula as "Fórmula",
+    ROUND(eg.co2e::numeric, 2) as "CO2e (t)",
+    ROUND(((eg.co2e / ts.total_setor) * 100)::numeric, 2) as "% no Setor"
+FROM emissoes_por_gas eg
+INNER JOIN totais_por_setor ts ON eg.estado = ts.estado AND eg.setor = ts.setor
+ORDER BY eg.estado, eg.setor, eg.co2e DESC;
