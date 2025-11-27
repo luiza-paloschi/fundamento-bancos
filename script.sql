@@ -346,3 +346,35 @@ INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
     (20, 20, 3),
     (21, 21, 1),
     (22, 22, 3);
+
+
+/*INSERÇÕES CONSULTA 5*/
+INSERT INTO municipio (geocodigo, nome, codigo_estado) VALUES
+	(4305108, 'Caxias do Sul', 43),
+	(4309100, 'Gramado', 43),
+	(4304408, 'Canela', 43),
+	(4300703, 'Anta Gorda', 43);
+	
+INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
+	(4305108, 4),
+	(4309100, 4),
+	(4304408, 4),
+	(4300703, 4);
+
+INSERT INTO fluxo_gas_efeito_estufa (codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma) VALUES
+	(23, 'Emissão', 2, 4305108, 4),
+	(24, 'Emissão', 2, 4309100, 4),
+	(25, 'Emissão', 2, 4304408, 4),
+	(26, 'Emissão', 2, 4300703, 4);
+
+INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
+	(23,2010,1534.29475317673),
+	(24,2010,100.375439365234),
+	(25,2010,86.2511319420331),
+	(26,2010,26.4168727107565);
+
+INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
+	(23,23,3),
+	(24,24,3),
+	(25,25,3),
+	(26,26,3);
