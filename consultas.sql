@@ -8,8 +8,10 @@ SELECT
 FROM estado e
 JOIN municipio m 
     ON m.codigo_estado = e.codigo
+JOIN municipio_bioma_fluxo mbf
+    ON mbf.cod_municipio = m.geocodigo
 JOIN fluxo_gas_efeito_estufa f 
-    ON f.codigo_municipio = m.geocodigo
+    ON f.codigo = mbf.cod_fluxo_gas
 JOIN gas_fluxo gf 
     ON gf.cod_fluxo_gas = f.codigo
 JOIN gas_efeito_estufa g
@@ -32,8 +34,10 @@ SELECT
 FROM municipio m
 JOIN estado e 
     ON e.codigo = m.codigo_estado
+JOIN municipio_bioma_fluxo mbf
+    ON mbf.cod_municipio = m.geocodigo
 JOIN fluxo_gas_efeito_estufa f
-    ON f.codigo_municipio = m.geocodigo
+    ON f.codigo = mbf.cod_fluxo_gas
 JOIN gas_fluxo gf 
     ON gf.cod_fluxo_gas = f.codigo
 JOIN historico_emissao h
@@ -48,7 +52,6 @@ LIMIT 10;
 /*
 	Consulta 3
 */
-
 SELECT
     m.nome AS municipio,
     e.nome AS estado,
@@ -58,8 +61,10 @@ SELECT
 FROM municipio m
 JOIN estado e 
     ON e.codigo = m.codigo_estado
+JOIN municipio_bioma_fluxo mbf 
+    ON mbf.cod_municipio = m.geocodigo
 JOIN fluxo_gas_efeito_estufa f
-    ON f.codigo_municipio = m.geocodigo
+    ON f.codigo = mbf.cod_fluxo_gas 
 JOIN gas_fluxo gf 
     ON gf.cod_fluxo_gas = f.codigo
 JOIN historico_emissao h
@@ -71,21 +76,30 @@ WHERE gf.cod_gas = 1;   -- Apenas CH4
 
 /*4) Elabore uma consulta SQL que liste a participação de cada bioma nas emissões do estado. Deve-se mostrar a contribuição de cada bioma para as emissões totais de CO2e dentro de um estado.*/
 
-SELECT b.nome as bioma, e.nome as estado, ROUND(SUM(he.total_fluxo) :: numeric, 2) as emissao_Total_CO2
+SELECT 
+    b.nome as bioma, 
+    e.nome as estado, 
+    ROUND(SUM(he.total_fluxo)::numeric, 2) as emissao_Total_CO2
 FROM bioma b
-INNER JOIN municipio_bioma mb on mb.cod_bioma = b.codigo
-INNER JOIN municipio m on mb.cod_municipio = m.geocodigo
-INNER JOIN estado e on e.codigo = m.codigo_estado
-INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_bioma = b.codigo AND fgee.codigo_municipio = m.geocodigo
-INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND gf.cod_gas = 3 /*Codigo CO2*/
-INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
-GROUP BY b.nome, e.nome;
+JOIN municipio_bioma_fluxo mbf on mbf.cod_bioma = b.codigo
+JOIN municipio m on m.geocodigo = mbf.cod_municipio
+JOIN estado e on e.codigo = m.codigo_estado
+JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo = mbf.cod_fluxo_gas
+JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo 
+JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
+JOIN gas_efeito_estufa gas on gas.codigo = gf.cod_gas
+WHERE gas.codigo = 3  -- CO2 (usando WHERE em vez de AND no JOIN)
+GROUP BY b.nome, e.nome
+ORDER BY b.nome, e.nome;
 
 /*5) Elabore uma consulta SQL que liste os 10 municípios de um estado com base no CO2. Deve-se ranquear os municípios de um estado com base em suas emissões de CO2e no ano de referência.*/
 
-SELECT m.nome as municipio, ROUND(he.total_fluxo :: numeric, 2) as emissao_CO2
+SELECT 
+    m.nome as municipio, 
+    ROUND(he.total_fluxo :: numeric, 2) as emissao_CO2
 FROM municipio m
-INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_municipio = m.geocodigo
+INNER JOIN municipio_bioma_fluxo mbf on mbf.cod_municipio = m.geocodigo  -- TABELA PONTE
+INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo = mbf.cod_fluxo_gas  -- VIA mbf
 INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND gf.cod_gas = 3
 INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao AND he.ano = 2010
 WHERE m.codigo_estado = 43
@@ -94,14 +108,19 @@ LIMIT 10;
 
 /*6)  Elabore uma consulta SQL que liste a comparação entre GWP e GTP por setor no estado (AR6), as emissões de CO2e computadas por GWP e GTP no AR6, exibindo ambas lado a lado.*/
 
-SELECT ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gwp, ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gtp, s.nome as setor, e.nome as estado
+SELECT 
+    ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gwp, 
+    ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gtp, 
+    s.nome as setor, 
+    e.nome as estado
 FROM setor_emissor s
-INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_setor_emissor = s.codigo
-INNER JOIN municipio m on m.geocodigo = fgee.codigo_municipio
-INNER JOIN estado e on e.codigo = m.codigo_estado
-INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND cod_gas = 3
-INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
-INNER JOIN gwp_ar6 gwpar6 on gwpar6.codigo = 3
+JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_setor_emissor = s.codigo
+JOIN municipio_bioma_fluxo mbf on mbf.cod_fluxo_gas = fgee.codigo
+JOIN municipio m on m.geocodigo = mbf.cod_municipio
+JOIN estado e on e.codigo = m.codigo_estado
+JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND cod_gas = 3
+JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
+JOIN gwp_ar6 gwpar6 on gwpar6.codigo = 3
 GROUP BY s.nome, e.nome, emissoes_por_gwp, emissoes_por_gtp;
 
 
@@ -119,7 +138,8 @@ WITH emissoes_por_gas AS (
         SUM(he.total_fluxo * gwp.gwp100) as co2e
     FROM estado e
     JOIN municipio m ON e.codigo = m.codigo_estado
-    JOIN fluxo_gas_efeito_estufa f ON m.geocodigo = f.codigo_municipio 
+    JOIN municipio_bioma_fluxo mbf ON m.geocodigo = mbf.cod_municipio 
+    JOIN fluxo_gas_efeito_estufa f ON f.codigo = mbf.cod_fluxo_gas  
     JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
     JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
     JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo
@@ -164,7 +184,8 @@ SELECT
     SUM(he.total_fluxo * gwp.gwp100) as "Total CO2e (t)"
 FROM estado e
 JOIN municipio m ON e.codigo = m.codigo_estado
-JOIN fluxo_gas_efeito_estufa f ON m.geocodigo = f.codigo_municipio 
+JOIN municipio_bioma_fluxo mbf ON m.geocodigo = mbf.cod_municipio  -- TABELA PONTE
+JOIN fluxo_gas_efeito_estufa f ON f.codigo = mbf.cod_fluxo_gas    -- AJUSTE NO JOIN
 JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
 JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
 JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo

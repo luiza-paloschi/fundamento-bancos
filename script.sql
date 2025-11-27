@@ -24,14 +24,6 @@ CREATE TABLE bioma (
     CONSTRAINT pk_bioma PRIMARY KEY(codigo)
 );
 
-CREATE TABLE municipio_bioma (
-    cod_municipio INTEGER NOT NULL,
-    cod_bioma INTEGER NOT NULL,
-    CONSTRAINT pk_municipio_bioma PRIMARY KEY(cod_municipio,cod_bioma),
-    CONSTRAINT fk_municipio FOREIGN KEY(cod_municipio) REFERENCES municipio(geocodigo),
-    CONSTRAINT fk_bioma FOREIGN KEY(cod_bioma) REFERENCES bioma(codigo)
-);
-
 CREATE TABLE setor_emissor (
     codigo INTEGER NOT NULL,
     nome VARCHAR(50) NOT NULL,
@@ -70,16 +62,22 @@ CREATE TABLE produto(
     CONSTRAINT fk_produto FOREIGN KEY(cod_atividade_geral) REFERENCES atividade_geral(codigo)
 );
 
-
 CREATE TABLE fluxo_gas_efeito_estufa (
     codigo INTEGER NOT NULL,
     tipo VARCHAR(10) NOT NULL, -- emissão, remoção ou bunker
     codigo_setor_emissor INTEGER NOT NULL,
-    codigo_municipio INTEGER NOT NULL,
-    codigo_bioma INTEGER NOT NULL,
-	CONSTRAINT pk_fluxo_gas PRIMARY KEY(codigo),
-    CONSTRAINT fk_setor_emissor FOREIGN KEY(codigo_setor_emissor) REFERENCES setor_emissor(codigo),
-    CONSTRAINT fK_municipio_bioma FOREIGN KEY (codigo_municipio, codigo_bioma) REFERENCES municipio_bioma (cod_municipio, cod_bioma)
+    CONSTRAINT pk_fluxo_gas PRIMARY KEY(codigo),
+    CONSTRAINT fk_setor_emissor FOREIGN KEY(codigo_setor_emissor) REFERENCES setor_emissor(codigo)
+);
+
+CREATE TABLE municipio_bioma_fluxo (
+    cod_municipio INTEGER NOT NULL,
+    cod_bioma INTEGER NOT NULL,
+    cod_fluxo_gas INTEGER NOT NULL,
+    CONSTRAINT pk_municipio_bioma_fluxo PRIMARY KEY(cod_municipio, cod_bioma, cod_fluxo_gas),
+    CONSTRAINT fk_municipio FOREIGN KEY(cod_municipio) REFERENCES municipio(geocodigo),
+    CONSTRAINT fk_bioma FOREIGN KEY(cod_bioma) REFERENCES bioma(codigo),
+    CONSTRAINT fk_fluxo_gas FOREIGN KEY(cod_fluxo_gas) REFERENCES fluxo_gas_efeito_estufa(codigo)
 );
 
 CREATE TABLE gas_efeito_estufa(
@@ -146,15 +144,6 @@ VALUES
     (15106307, 'Paranatinga', 51),
     (13141009, 'Mato Verde', 31);
 
-
-INSERT INTO municipio_bioma (cod_municipio, cod_bioma)
-VALUES 
-    (12901908, 3),
-    (12901908, 4),
-    (14311205, 5),
-    (15106307, 2),
-    (13141009, 3);
-
 INSERT INTO setor_emissor (codigo, nome)
 VALUES
     (1, 'Agropecuária'),
@@ -203,14 +192,21 @@ VALUES
     (4, 'Área sem vegetação -- Uso agropecuário', 1),
     (5, 'Gado de corte', 2);
 
-
-INSERT INTO fluxo_gas_efeito_estufa (codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma)
+INSERT INTO fluxo_gas_efeito_estufa (codigo, tipo, codigo_setor_emissor)
 VALUES 
-    (1, 'Emissão', 1, 12901908, 3),
-    (2, 'Emissão', 1, 12901908, 4),
-    (3, 'Emissão', 2, 14311205, 5),
-    (4, 'Remoção', 3, 15106307, 2),
-    (5, 'Emissão', 1, 13141009, 3);
+    (1, 'Emissão', 1),
+    (2, 'Emissão', 1),
+    (3, 'Emissão', 2),
+    (4, 'Remoção', 3),
+    (5, 'Emissão', 1);
+
+INSERT INTO municipio_bioma_fluxo (cod_municipio, cod_bioma, cod_fluxo_gas)
+VALUES 
+    (12901908, 3, 1),  -- Aporá, Caatinga, Fluxo 1
+    (12901908, 4, 2),  -- Aporá, Mata Atlântica, Fluxo 2
+    (14311205, 5, 3),  -- Júlio de Castilhos, Pampa, Fluxo 3
+    (15106307, 2, 4),  -- Paranatinga, Cerrado, Fluxo 4
+    (13141009, 3, 5);  -- Mato Verde, Caatinga, Fluxo 5
 
 INSERT INTO historico_emissao (codigo, ano, total_fluxo)
 VALUES
@@ -268,58 +264,57 @@ INSERT INTO municipio (geocodigo, nome, codigo_estado) VALUES
 	(4304408, 'Canela', 43),
 	(4300703, 'Anta Gorda', 43);
 
-
-INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
-    (12903501, 4),
-    (12904509, 4),
-
-    (14321009, 5),
-    (14332007, 5),
-
-    (15150502, 2),
-    (15161002, 2),
-    (15161002, 1),
-
-    (13122003, 3),
-    (13193006, 4),
-
-    (22077009, 3),
-    (22019001, 3),
-    
-    (4305108, 4),
-	(4309100, 4),
-	(4304408, 4),
-	(4300703, 4);
-
-INSERT INTO fluxo_gas_efeito_estufa 
-(codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma)
+INSERT INTO fluxo_gas_efeito_estufa (codigo, tipo, codigo_setor_emissor)
 VALUES
-    (6, 'Emissão', 1, 12903501, 4),
-    (7, 'Emissão', 2, 12903501, 4),
-    (8, 'Emissão', 1, 12904509, 4),
-    (9, 'Emissão', 3, 12904509, 4),
+    (6, 'Emissão', 1),
+    (7, 'Emissão', 2),
+    (8, 'Emissão', 1),
+    (9, 'Emissão', 3),
+    (10, 'Emissão', 2),
+    (11, 'Emissão', 1),
+    (12, 'Remoção', 3),
+    (13, 'Emissão', 1),
+    (14, 'Emissão', 1),
+    (15, 'Emissão', 2),
+    (16, 'Emissão', 1),
+    (17, 'Remoção', 3),
+    (18, 'Emissão', 2),
+    (19, 'Emissão', 1),
+    (20, 'Emissão', 2),
+    (21, 'Emissão', 1),
+    (22, 'Remoção', 3),
+    (23, 'Emissão', 2),
+    (24, 'Emissão', 2),
+    (25, 'Emissão', 2),
+    (26, 'Emissão', 2);
 
-    (10, 'Emissão', 2, 14321009, 5),
-    (11, 'Emissão', 1, 14321009, 5),
-    (12, 'Remoção', 3, 14332007, 5),
-
-    (13, 'Emissão', 1, 15150502, 2),
-    (14, 'Emissão', 1, 15161002, 2),
-    (15, 'Emissão', 2, 15161002, 1),
-
-    (16, 'Emissão', 1, 13122003, 3),
-    (17, 'Remoção', 3, 13122003, 3),
-    (18, 'Emissão', 2, 13193006, 4),
-
-    (19, 'Emissão', 1, 22077009, 3),
-    (20, 'Emissão', 2, 22077009, 3),
-    (21, 'Emissão', 1, 22019001, 3),
-    (22, 'Remoção', 3, 22019001, 3),
+INSERT INTO municipio_bioma_fluxo (cod_municipio, cod_bioma, cod_fluxo_gas) VALUES
+    (12903501, 4, 6),   -- Alagoinhas, Mata Atlântica, Fluxo 6
+    (12903501, 4, 7),   -- Alagoinhas, Mata Atlântica, Fluxo 7
+    (12904509, 4, 8),   -- Catu, Mata Atlântica, Fluxo 8
+    (12904509, 4, 9),   -- Catu, Mata Atlântica, Fluxo 9
     
-    (23, 'Emissão', 2, 4305108, 4),
-	(24, 'Emissão', 2, 4309100, 4),
-	(25, 'Emissão', 2, 4304408, 4),
-	(26, 'Emissão', 2, 4300703, 4);
+    (14321009, 5, 10),  -- Santa Maria, Pampa, Fluxo 10
+    (14321009, 5, 11),  -- Santa Maria, Pampa, Fluxo 11
+    (14332007, 5, 12),  -- Bagé, Pampa, Fluxo 12
+    
+    (15150502, 2, 13),  -- Sorriso, Cerrado, Fluxo 13
+    (15161002, 2, 14),  -- Sinop, Cerrado, Fluxo 14
+    (15161002, 1, 15),  -- Sinop, Amazônia, Fluxo 15
+    
+    (13122003, 3, 16),  -- Montes Claros, Caatinga, Fluxo 16
+    (13122003, 3, 17),  -- Montes Claros, Caatinga, Fluxo 17
+    (13193006, 4, 18),  -- Uberaba, Mata Atlântica, Fluxo 18
+    
+    (22077009, 3, 19),  -- Picos, Caatinga, Fluxo 19
+    (22077009, 3, 20),  -- Picos, Caatinga, Fluxo 20
+    (22019001, 3, 21),  -- Campo Maior, Caatinga, Fluxo 21
+    (22019001, 3, 22),  -- Campo Maior, Caatinga, Fluxo 22
+    
+    (4305108, 4, 23),   -- Caxias do Sul, Mata Atlântica, Fluxo 23
+    (4309100, 4, 24),   -- Gramado, Mata Atlântica, Fluxo 24
+    (4304408, 4, 25),   -- Canela, Mata Atlântica, Fluxo 25
+    (4300703, 4, 26);   -- Anta Gorda, Mata Atlântica, Fluxo 26
 
 INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
     (6, 1990, 12.5),
