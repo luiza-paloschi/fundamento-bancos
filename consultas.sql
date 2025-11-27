@@ -108,7 +108,7 @@ GROUP BY s.nome, e.nome, emissoes_por_gwp, emissoes_por_gtp;
 /*
     Consulta 7
 */
--- Tabelas temporárias para organizar os dados e deixar consulta mais legível
+-- tabelas temporárias para organizar os dados e deixar consulta mais legível
 -- Emissões por gás, setor e estado
 WITH emissoes_por_gas AS (
     SELECT 
@@ -116,23 +116,20 @@ WITH emissoes_por_gas AS (
         se.nome as setor,
         ge.nome as gas,
         ge.formula,
-        SUM(he.total_fluxo * COALESCE(gwp.gwp100, 0)) as co2e
+        SUM(he.total_fluxo * gwp.gwp100) as co2e
     FROM estado e
-    INNER JOIN municipio m ON e.codigo = m.codigo_estado
-    INNER JOIN municipio_bioma mb ON m.geocodigo = mb.cod_municipio
-    INNER JOIN fluxo_gas_efeito_estufa f ON mb.cod_municipio = f.codigo_municipio 
-                                      AND mb.cod_bioma = f.codigo_bioma
-    INNER JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
-    INNER JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
-    INNER JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo
-    INNER JOIN setor_emissor se ON f.codigo_setor_emissor = se.codigo
-    LEFT JOIN gwp_ar6 gwp ON ge.codigo = gwp.codigo
-    WHERE he.total_fluxo > 0
-      AND f.tipo = 'Emissão'
+    JOIN municipio m ON e.codigo = m.codigo_estado
+    JOIN fluxo_gas_efeito_estufa f ON m.geocodigo = f.codigo_municipio 
+    JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
+    JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
+    JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo
+    JOIN setor_emissor se ON f.codigo_setor_emissor = se.codigo
+    JOIN gwp_ar6 gwp ON ge.codigo = gwp.codigo
+    WHERE f.tipo = 'Emissão'
     GROUP BY e.nome, se.nome, ge.nome, ge.formula
 ),
 
--- Calcula totais por setor em cada estado
+-- totais por setor em cada estado
 totais_por_setor AS (
     SELECT 
         estado,
@@ -143,15 +140,40 @@ totais_por_setor AS (
     HAVING SUM(co2e) > 0
 )
 
--- Resultado final a ser exibido
+-- Resultado final
 SELECT 
     eg.estado as "Estado",
     eg.setor as "Setor",
     eg.gas as "Gás",
     eg.formula as "Fórmula",
-    ROUND(eg.co2e::numeric, 2) as "CO2e (t)",
+    eg.co2e as "CO2e (t)",
     ROUND(((eg.co2e / ts.total_setor) * 100)::numeric, 2) as "% no Setor"
 FROM emissoes_por_gas eg
 INNER JOIN totais_por_setor ts ON eg.estado = ts.estado AND eg.setor = ts.setor
-
 ORDER BY eg.estado, eg.setor, eg.co2e DESC;
+
+
+/*    
+    Consulta 8
+*/
+SELECT 
+    e.nome as "Estado",
+    ce.nome as "Fonte",
+    se.nome as "Setor",
+    m.nome as "Unidade",
+    SUM(he.total_fluxo * gwp.gwp100) as "Total CO2e (t)"
+FROM estado e
+JOIN municipio m ON e.codigo = m.codigo_estado
+JOIN fluxo_gas_efeito_estufa f ON m.geocodigo = f.codigo_municipio 
+JOIN gas_fluxo gf ON f.codigo = gf.cod_fluxo_gas
+JOIN historico_emissao he ON gf.cod_historico_emissao = he.codigo
+JOIN gas_efeito_estufa ge ON gf.cod_gas = ge.codigo
+JOIN setor_emissor se ON f.codigo_setor_emissor = se.codigo
+JOIN categoria_emissora ce ON f.codigo_categoria_emissora = ce.codigo
+JOIN gwp_ar6 gwp ON ge.codigo = gwp.codigo
+WHERE he.total_fluxo > 0
+  AND f.tipo = 'Emissão'
+  AND e.nome = 'Rio Grande do Sul'  -- filtro por estado
+  AND he.ano = 2010  -- ano de referência
+GROUP BY e.nome, ce.nome, se.nome, m.nome
+ORDER BY "Total CO2e (t)" DESC;

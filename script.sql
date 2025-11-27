@@ -174,7 +174,11 @@ VALUES
     (7, 'Remoção por mudança de uso da terra', 3),
     (8, 'Outras mudanças de uso da terra', 3),
     (9, 'Solos Manejados', 1),
-    (10, 'Deposição de dejetos em pastagem', 1);
+    (10, 'Deposição de dejetos em pastagem', 1),
+    (11, 'Residencial', 2),
+    (12, 'Industrial', 2),
+    (13, 'Alterações de uso da terra', 3),
+    (14, 'Carbono orgânico no solo', 3);
 
 INSERT INTO categoria_subcategoria (cod_categoria, cod_subcategoria)
 VALUES
@@ -257,7 +261,13 @@ INSERT INTO municipio (geocodigo, nome, codigo_estado) VALUES
     (13193006, 'Uberaba', 31),
 
     (22077009, 'Picos', 22),
-    (22019001, 'Campo Maior', 22);
+    (22019001, 'Campo Maior', 22),
+
+    (4305108, 'Caxias do Sul', 43),
+	(4309100, 'Gramado', 43),
+	(4304408, 'Canela', 43),
+	(4300703, 'Anta Gorda', 43);
+
 
 INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
     (12903501, 4),
@@ -274,7 +284,12 @@ INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
     (13193006, 4),
 
     (22077009, 3),
-    (22019001, 3);
+    (22019001, 3),
+    
+    (4305108, 4),
+	(4309100, 4),
+	(4304408, 4),
+	(4300703, 4);
 
 INSERT INTO fluxo_gas_efeito_estufa 
 (codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma)
@@ -299,7 +314,12 @@ VALUES
     (19, 'Emissão', 1, 22077009, 3),
     (20, 'Emissão', 2, 22077009, 3),
     (21, 'Emissão', 1, 22019001, 3),
-    (22, 'Remoção', 3, 22019001, 3);
+    (22, 'Remoção', 3, 22019001, 3),
+    
+    (23, 'Emissão', 2, 4305108, 4),
+	(24, 'Emissão', 2, 4309100, 4),
+	(25, 'Emissão', 2, 4304408, 4),
+	(26, 'Emissão', 2, 4300703, 4);
 
 INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
     (6, 1990, 12.5),
@@ -322,7 +342,12 @@ INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
     (19, 2011, 41.3),
     (20, 2003, 63.8),
     (21, 2008, 22.4),
-    (22, 2014, -18.6);
+    (22, 2014, -18.6),
+
+    (23,2010, 534.3),
+	(24,2010, 100.4),
+	(25,2010, 86.2),
+	(26,2010, 26.4);
 
 INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
     (6, 6, 1),
@@ -345,36 +370,50 @@ INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
     (19, 19, 1),
     (20, 20, 3),
     (21, 21, 1),
-    (22, 22, 3);
+    (22, 22, 3),
 
-
-/*INSERÇÕES CONSULTA 5*/
-INSERT INTO municipio (geocodigo, nome, codigo_estado) VALUES
-	(4305108, 'Caxias do Sul', 43),
-	(4309100, 'Gramado', 43),
-	(4304408, 'Canela', 43),
-	(4300703, 'Anta Gorda', 43);
-	
-INSERT INTO municipio_bioma (cod_municipio, cod_bioma) VALUES
-	(4305108, 4),
-	(4309100, 4),
-	(4304408, 4),
-	(4300703, 4);
-
-INSERT INTO fluxo_gas_efeito_estufa (codigo, tipo, codigo_setor_emissor, codigo_municipio, codigo_bioma) VALUES
-	(23, 'Emissão', 2, 4305108, 4),
-	(24, 'Emissão', 2, 4309100, 4),
-	(25, 'Emissão', 2, 4304408, 4),
-	(26, 'Emissão', 2, 4300703, 4);
-
-INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
-	(23,2010,1534.29475317673),
-	(24,2010,100.375439365234),
-	(25,2010,86.2511319420331),
-	(26,2010,26.4168727107565);
-
-INSERT INTO gas_fluxo (cod_historico_emissao, cod_fluxo_gas, cod_gas) VALUES
-	(23,23,3),
+    (23,23,3),
 	(24,24,3),
 	(25,25,3),
 	(26,26,3);
+
+
+/*-------------------------------------------------------------------------------------------------
+ALTERAÇÕES CONSULTA 8
+*-------------------------------------------------------------------------------------------------*/
+
+-- Adicionar coluna de categoria_emissora
+ALTER TABLE fluxo_gas_efeito_estufa 
+ADD COLUMN codigo_categoria_emissora INTEGER,
+ADD CONSTRAINT fk_categoria_emissora_fluxo FOREIGN KEY (codigo_categoria_emissora) REFERENCES categoria_emissora(codigo);
+
+-- Atualizar os fluxo_gas_efeito_estufa com a categoria_emissora
+UPDATE fluxo_gas_efeito_estufa 
+SET codigo_categoria_emissora = 
+    CASE 
+        -- Agropecuária (1)
+        WHEN codigo_setor_emissor = 1 THEN 
+            CASE 
+                WHEN codigo IN (1, 2, 8, 11, 13, 14, 16, 19, 21) THEN 1  -- Cultivo de arroz
+                WHEN codigo IN (5) THEN 3  -- Fermentação entérica
+                ELSE 9  -- Solos Manejados
+            END
+        
+        -- Energia (2)
+        WHEN codigo_setor_emissor = 2 THEN 
+            CASE 
+                WHEN codigo IN (3, 7, 10, 15, 18, 20, 23, 24, 25, 26) THEN 5  -- Transportes
+                ELSE 11  -- Residencial 
+            END
+        
+        -- Mudança de Uso da Terra (3)
+        WHEN codigo_setor_emissor = 3 THEN 
+            CASE 
+                WHEN tipo = 'Remoção' THEN 7  -- Remoção por mudança de uso da terra
+                ELSE 13  -- Alterações de uso da terra
+            END
+        
+        -- Outros setores
+        ELSE 1
+    END
+WHERE codigo_categoria_emissora IS NULL;
