@@ -69,6 +69,41 @@ JOIN gwp_ar6 gwp
 WHERE gf.cod_gas = 1;   -- Apenas CH4
 
 
+/*4) Elabore uma consulta SQL que liste a participação de cada bioma nas emissões do estado. Deve-se mostrar a contribuição de cada bioma para as emissões totais de CO2e dentro de um estado.*/
+
+SELECT b.nome as bioma, e.nome as estado, ROUND(SUM(he.total_fluxo) :: numeric, 2) as emissao_Total_CO2
+FROM bioma b
+INNER JOIN municipio_bioma mb on mb.cod_bioma = b.codigo
+INNER JOIN municipio m on mb.cod_municipio = m.geocodigo
+INNER JOIN estado e on e.codigo = m.codigo_estado
+INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_bioma = b.codigo AND fgee.codigo_municipio = m.geocodigo
+INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND gf.cod_gas = 3 /*Codigo CO2*/
+INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
+GROUP BY b.nome, e.nome;
+
+/*5) Elabore uma consulta SQL que liste os 10 municípios de um estado com base no CO2. Deve-se ranquear os municípios de um estado com base em suas emissões de CO2e no ano de referência.*/
+
+SELECT m.nome as municipio, ROUND(he.total_fluxo :: numeric, 2) as emissao_CO2
+FROM municipio m
+INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_municipio = m.geocodigo
+INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND gf.cod_gas = 3
+INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao AND he.ano = 2010
+WHERE m.codigo_estado = 43
+ORDER BY he.total_fluxo DESC
+LIMIT 10;
+
+/*6)  Elabore uma consulta SQL que liste a comparação entre GWP e GTP por setor no estado (AR6), as emissões de CO2e computadas por GWP e GTP no AR6, exibindo ambas lado a lado.*/
+
+SELECT ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gwp, ROUND((he.total_fluxo * gwpar6.gwp100)::numeric,2) as emissoes_por_gtp, s.nome as setor, e.nome as estado
+FROM setor_emissor s
+INNER JOIN fluxo_gas_efeito_estufa fgee on fgee.codigo_setor_emissor = s.codigo
+INNER JOIN municipio m on m.geocodigo = fgee.codigo_municipio
+INNER JOIN estado e on e.codigo = m.codigo_estado
+INNER JOIN gas_fluxo gf on gf.cod_fluxo_gas = fgee.codigo AND cod_gas = 3
+INNER JOIN historico_emissao he on he.codigo = gf.cod_historico_emissao
+INNER JOIN gwp_ar6 gwpar6 on gwpar6.codigo = 3
+GROUP BY s.nome, e.nome, emissoes_por_gwp, emissoes_por_gtp;
+
 
 /*
     Consulta 7
@@ -118,4 +153,5 @@ SELECT
     ROUND(((eg.co2e / ts.total_setor) * 100)::numeric, 2) as "% no Setor"
 FROM emissoes_por_gas eg
 INNER JOIN totais_por_setor ts ON eg.estado = ts.estado AND eg.setor = ts.setor
+
 ORDER BY eg.estado, eg.setor, eg.co2e DESC;
