@@ -339,7 +339,7 @@ INSERT INTO historico_emissao (codigo, ano, total_fluxo) VALUES
     (21, 2008, 22.4),
     (22, 2014, -18.6),
 
-    (23,2010, 534.3),
+    (23,2010, 1534.3),
 	(24,2010, 100.4),
 	(25,2010, 86.2),
 	(26,2010, 26.4);
@@ -411,4 +411,5 @@ SET codigo_categoria_emissora =
         -- Outros setores
         ELSE 1
     END
+
 WHERE codigo_categoria_emissora IS NULL;
